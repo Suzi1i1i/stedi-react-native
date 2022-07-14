@@ -1,39 +1,55 @@
 import {useState} from "react";
-import { SafeAreaView, StyleSheet, TextInput, Text, TouchableOpacity } from "react-native";
+import { SafeAreaView, StyleSheet, TextInput, TouchableOpacity, Button, Text } from "react-native";
 
-
-
-const sendText = async (phoneNumber) => {
-  const loginResponse = await fetch('https://dev.stedi.me/twofactorlogin/'+phoneNumber,{
+const sendText= async (phoneNumber)=>{
+  console.log("PhoneNumber: ",phoneNumber);
+  await fetch('https://dev.stedi.me/twofactorlogin/'+phoneNumber,{
     method: 'POST',
     headers:{
       'content-type':'application/text'
     }
   });
-  const loginResponseText = await loginResponse.text();//
-  console.log('Login Response', loginResponseText);
 
 }
-const getToken = async({phoneNumber,oneTimePassword}) =>{
-  const loginResponse = await fetch('https://dev.stedi.me/twofactorlogin/',{
-    method: 'POST',
-    headers:{
-      'content-type':'application/text'
-    },
-    body:(
-      phoneNumber,
-      oneTimePassword
-    )
-  });
-  const token = await loginResponse.text(); 
-  console.log(token); 
-}
 
-const Login = () => {
+
+
+const Login = (props) => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [oneTimePassword, setOneTimePassword] = useState(null);
 
-  console.log(loginResponse.text());//print the response
+  const getToken = async ({phoneNumber, oneTimePassword, setUserLoggedIn}) =>{
+    const tokenResponse = await fetch('https://dev.stedi.me/twofactorlogin',{
+      method: 'POST',
+      body:JSON.stringify({oneTimePassword, phoneNumber}),
+      headers: {
+        'content-type':'application/json'
+      }
+    
+    
+    
+    });
+  
+  
+  
+    const responseCode = tokenResponse.status;//200 means logged in successfully
+    console.log("Response Status Code", responseCode);
+
+    const tokenResponseString = await tokenResponse.text();
+    console.log("Token",tokenResponse);
+  
+    const emailResponse = await fetch('https://dev.stedi.me/validate/'
+    +tokenResponseString);
+  
+    const email = await emailResponse.text();
+  
+    console.log("Email",email);
+    props.setUserName(email);
+
+    if(responseCode==200){
+      setUserLoggedIn(true);
+    }
+  }
 
   return (
     <SafeAreaView style={styles.margin}>
@@ -41,32 +57,36 @@ const Login = () => {
         style={styles.input}
         onChangeText={setPhoneNumber}
         value={phoneNumber}
+        placeholderTextColor='#4251f5'
         placeholder="801-555-1212"
       />
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => {
-          sendText(phoneNumber);
-        }}
-      >
-        <Text>Send Text</Text>
-      </TouchableOpacity>
+
+      <Button 
+      title="Send Text"
+      style={styles.button}
+      onPress={()=>{
+        sendText(phoneNumber);
+      }}
+      />
+
       <TextInput
         style={styles.input}
         onChangeText={setOneTimePassword}
         value={oneTimePassword}
-        placeholder="01234"
+        placeholder="1234"
+        placeholderTextColor='#4251f5'
         keyboardType="numeric"
         secureTextEntry={true}
       />
-        <TouchableOpacity
-        style={styles.button}
-        onPress={()=>{
-          getToken({phonrNumber, oneTimePassword});
-        }}
+      <TouchableOpacity 
+      style={styles.button}
+      onPress={()=>{
+        getToken({phoneNumber, oneTimePassword, setUserLoggedIn:props.setUserLoggedIn});
+      }}
       >
-        <Text>Press Here</Text>
+        <Text>Login</Text>
       </TouchableOpacity>
+         
     </SafeAreaView>
   );
 };
@@ -78,14 +98,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 10,
   },
-
+  margin:{
+    marginTop:100
+  },
   button: {
     alignItems: "center",
     backgroundColor: "#DDDDDD",
     padding: 10
-  },
-  margin:{
-    marginTop:100
   }
 });
 
